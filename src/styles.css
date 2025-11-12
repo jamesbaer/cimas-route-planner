@@ -1,0 +1,654 @@
+/* App layout */
+.app {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Left panel */
+.left-panel {
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.left-panel h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Form sections */
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-section fieldset {
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+}
+
+.form-section legend {
+  font-weight: 500;
+  padding: 0 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: -2px;
+  border-color: #0066cc;
+}
+
+/* CSV upload */
+.upload-zone {
+  border: 2px dashed #ced4da;
+  border-radius: 0.375rem;
+  padding: 2rem;
+  text-align: center;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.upload-zone:hover {
+  border-color: #0066cc;
+}
+
+.upload-zone.dragover {
+  border-color: #0066cc;
+  background: #f0f7ff;
+}
+
+.upload-zone p {
+  margin: 0.5rem 0;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-button {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.upload-button:hover {
+  background: #0052a3;
+}
+
+/* Multi-select */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+/* Coordinates */
+.coord-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+/* Run button */
+.run-button {
+  width: 100%;
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.run-button:hover:not(:disabled) {
+  background: #218838;
+}
+
+.run-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Map container */
+.map-container {
+  height: 100vh;
+}
+
+/* Output console */
+.output-console {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.output-console .console-header {
+  background: #f8fafc;
+  padding: 8px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+}
+.output-console .console-body { padding: 10px 12px; }
+.output-console .console-empty { color: #6b7280; }
+
+.console-log {
+  background: #0b1020;
+  color: #c8e1ff;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin: 0 0 10px 0;
+}
+
+.console-actions { display: flex; gap: 8px; margin-bottom: 8px; }
+.console-actions .btn {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+  text-decoration: none;
+  color: #111827;
+}
+
+.console-table {
+  overflow: auto;
+  max-height: 280px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+.console-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.console-table th, .console-table td {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 6px 8px;
+  text-align: left;
+}
+.console-table thead th {
+  position: sticky; top: 0;
+  background: #f8fafc;
+}
+
+/* Updated layout for new structure */
+.app-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.right-col {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 12px;
+}
+
+.map-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Updated left panel styles */
+.left-panel {
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.left-panel h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field span {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.field input[type="file"] {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.field select {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chip:hover {
+  border-color: #0066cc;
+}
+
+.chip.on {
+  background: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.row input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.error {
+  background: #fee;
+  color: #c33;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.primary {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.primary:hover:not(:disabled) {
+  background: #0052a3;
+}
+
+.primary:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Step sections */
+.step-section {
+  margin-top: 1rem;
+  border-top: 1px solid #dee2e6;
+  padding-top: 1rem;
+}
+
+.collapsible {
+  width: 100%;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.collapsible:hover {
+  background: #e9ecef;
+}
+
+.collapsible-content {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+.step2-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step2-panel h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.step2-panel h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.step3-panel h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.step3-panel h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.log-area, .preview-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.log-area .console-log {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.preview-area .console-table {
+  max-height: 200px;
+}
+
+.preview-area .btn {
+  align-self: flex-start;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  background: #f8f9fa;
+  color: #495057;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.preview-area .btn:hover {
+  background: #e9ecef;
+}
+
+.routing-summary {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.summary-grid > div {
+  background: white;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #e9ecef;
+  text-align: center;
+}
+
+.step3-output .routing-summary h5 {
+  margin-bottom: 0.75rem;
+}
+
+.step4-panel h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.step4-panel h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.map-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.map-wrapper {
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.stats-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+.stats-overlay div {
+  margin: 2px 0;
+}
+
+.map-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.map-actions .btn {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  background: #f8f9fa;
+  color: #495057;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.map-actions .btn:hover {
+  background: #e9ecef;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  
+  .left-panel {
+    border-right: none;
+    border-bottom: 1px solid #dee2e6;
+    max-height: 50vh;
+  }
+  
+  .map-container {
+    height: 50vh;
+  }
+}
+
+/* Step 4 Controls */
+.step4-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step4-controls .primary {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.step4-controls .primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.step4-controls .primary:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Step 5 GPX Export */
+.step5-gpx {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step5-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.options-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.options-row label {
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.options-row input[type="number"] {
+  width: 60px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.decimation-hint {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Inline notifications */
+.inline-error {
+  background: #ffecec;
+  border: 1px solid #f5c2c7;
+  color: #b02a37;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.inline-success {
+  background: #edf7ed;
+  border: 1px solid #badbcc;
+  color: #0f5132;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 8px;
+}
