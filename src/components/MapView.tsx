@@ -1,9 +1,9 @@
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet'
-import { useEffect } from 'react'
+import { MapContainer, Polyline, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import { useEffect, useRef } from 'react'
 import { LatLngBounds } from 'leaflet'
 import L from 'leaflet'
 import { decode } from '@here/flexpolyline'
-import { useStep4 } from '../store'
+import { useStep4, useInputs } from '../store'
 import 'leaflet/dist/leaflet.css'
 
 // Fix Leaflet default icon issue
@@ -89,18 +89,83 @@ function createDestinationIcon() {
 
 export default function MapView() {
   const { step4Data } = useStep4();
+  const { theme } = useInputs();
+  const mapRef = useRef<L.Map | null>(null);
+  
+  // Tile URLs for light and dark themes
+  const LIGHT_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  const ATTR_LIGHT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  const ATTR_DARK = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  
+  // Component to handle map reference and tile layers
+  function MapEventHandler() {
+    const map = useMap();
+    
+    useEffect(() => {
+      // Store map reference
+      mapRef.current = map;
+      
+      // Remove existing tile layers
+      map.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) {
+          map.removeLayer(layer);
+        }
+      });
+      
+      // Add themed tile layer
+      L.tileLayer(
+        theme === "dark" ? DARK_TILES : LIGHT_TILES,
+        { 
+          attribution: theme === "dark" ? ATTR_DARK : ATTR_LIGHT, 
+          maxZoom: 19 
+        }
+      ).addTo(map);
+    }, [map, theme]);
+    
+    useMapEvents({
+      add: () => {
+        // Map is ready, ensure tiles are applied
+        if (mapRef.current) {
+          mapRef.current.eachLayer((layer) => {
+            if (layer instanceof L.TileLayer) {
+              mapRef.current?.removeLayer(layer);
+            }
+          });
+          
+          L.tileLayer(
+            theme === "dark" ? DARK_TILES : LIGHT_TILES,
+            { 
+              attribution: theme === "dark" ? ATTR_DARK : ATTR_LIGHT, 
+              maxZoom: 19 
+            }
+          ).addTo(mapRef.current);
+        }
+      }
+    });
+    
+    return null;
+  }
   
   return (
-    <div className="map-container">
-      <MapContainer
-        center={step4Data ? [step4Data.origin.lat, step4Data.origin.lng] : [42.98, -2.63]}
-        zoom={12}
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+    <MapContainer
+            center={step4Data ? [step4Data.origin.lat, step4Data.origin.lng] : [42.98, -2.63]}
+            zoom={12}
+            style={{ height: '100%', width: '100%' }}
+            whenReady={() => {
+              // Invalidate size to ensure proper rendering
+              setTimeout(() => {
+                const mapContainer = document.querySelector('.leaflet-container');
+                if (mapContainer) {
+                  const leafletMap = (mapContainer as any)._leaflet_map;
+                  if (leafletMap) {
+                    leafletMap.invalidateSize();
+                  }
+                }
+              }, 100);
+            }}
+          >
+        <MapEventHandler />
         
         {step4Data && (
           <>
@@ -163,6 +228,5 @@ export default function MapView() {
           </>
         )}
       </MapContainer>
-    </div>
   )
 }

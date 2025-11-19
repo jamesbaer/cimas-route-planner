@@ -180,6 +180,7 @@ export default function Step3Routing() {
   return (
     <div className="step3-panel">
       <button
+        data-step3-trigger
         className="primary"
         onClick={runStep3}
         disabled={isRunningStep3}

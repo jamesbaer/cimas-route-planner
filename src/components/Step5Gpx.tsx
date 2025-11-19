@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useStep5, useInputs } from '../store';
+import { useT } from '../i18n';
 import { 
   loadGpxData, 
   buildGpxXml, 
-  generateFilename, 
   generateTrackName, 
   generateTrackDescription,
   titleArea 
@@ -10,7 +11,9 @@ import {
 import InlineError from './InlineError';
 
 export default function Step5Gpx() {
-  const [isExporting, setIsExporting] = useState(false);
+  const { language } = useInputs();
+  const t = useT(language);
+  const { isExporting, setIsExporting } = useStep5();
   const [decimation, setDecimation] = useState(1);
   const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -63,8 +66,19 @@ export default function Step5Gpx() {
       
       addLog(`✅ Found ${sectionPolylines.length} section polylines`);
       
-      // Generate filename and track info
-      const filename = generateFilename(selectedWastes, selectedArea);
+      // Generate localized filename and track info
+      const localizedWasteName = selectedWastes.length > 0 ? 
+        t(selectedWastes[0].toLowerCase() as "envases" | "resto" | "papel" | "reutilizables" | "vidrio" | "aceite") : 
+        'Route';
+      const localizedZoneName = selectedArea ? t(selectedArea as "este" | "centro" | "oeste") : '';
+      
+      // Generate filename based on language
+      const filename = language === "es" ? 
+        // Spanish format: "Envases Ligeros Ruta Este.gpx"
+        (localizedZoneName ? `${localizedWasteName} Ruta ${localizedZoneName}.gpx` : `${localizedWasteName} Ruta.gpx`) :
+        // English format: "Residual Waste East Route.gpx"
+        (localizedZoneName ? `${localizedWasteName} ${localizedZoneName} Route.gpx` : `${localizedWasteName} Route.gpx`);
+      
       const wastePart = selectedWastes.length > 0 ? selectedWastes.join(', ') : 'Ruta';
       const areaPart = titleArea(selectedArea);
       const baseTitle = areaPart ? `${wastePart} Ruta ${areaPart}` : `${wastePart} Ruta`;
@@ -141,6 +155,7 @@ export default function Step5Gpx() {
         </div>
         
         <button
+          data-step5-trigger
           className="primary"
           onClick={exportGpx}
           disabled={isExporting}

@@ -8,10 +8,9 @@ import type { IngestionConfig, StopRow, OrderedVia, OrderedStopsArtifact } from 
 import InlineError from './InlineError';
 
 export default function Step2Wps() {
-  const { orderedPreview, step2Log, setStep2Log, setOrderedPreview } = useStep2();
+  const { orderedPreview, step2Log, setStep2Log, setOrderedPreview, isProcessing, setIsProcessing } = useStep2();
   const { apiKey } = useInputs();
   const { runStep4Render } = useStep4();
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string>('');
   
@@ -20,7 +19,7 @@ export default function Step2Wps() {
   const runStep2 = async () => {
     setError(null);
     setSuccessMsg('');
-    setBusy(true);
+    setIsProcessing(true);
     const log: string[] = [];
 
     try {
@@ -244,7 +243,7 @@ export default function Step2Wps() {
       log.push(`❌ Error: ${errorMsg}`);
       if (debug) setStep2Log(log);
     } finally {
-      setBusy(false);
+      setIsProcessing(false);
     }
   };
 
@@ -270,11 +269,12 @@ export default function Step2Wps() {
   return (
     <div className="step2-wps">
       <button
+        data-step2-trigger
         className="primary"
         onClick={runStep2}
-        disabled={busy || !apiKey.trim()}
+        disabled={isProcessing || !apiKey.trim()}
       >
-        {busy ? 'Processing…' : 'Run Sequencing'}
+        {isProcessing ? 'Processing…' : 'Run Sequencing'}
       </button>
 
       <InlineError message={error || ''} />

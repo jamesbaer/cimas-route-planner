@@ -1,12 +1,22 @@
 import { create } from 'zustand';
 import type { OrderedVia, RoutingArtifact, Step4Data } from './types';
 
+export type Waste = "Envases"|"Resto"|"Papel"|"Reutilizables"|"Vidrio"|"Aceite";
+export type Zone = "este"|"centro"|"oeste";
+
+// Legacy types for backward compatibility
 export type WasteType = 'Envases' | 'Resto' | 'Papel' | 'Reutilizables' | 'Vidrio' | 'Aceite';
+export type Lang = "en" | "es";
+export type Theme = "light" | "dark";
 export type AreaType = 'este' | 'centro' | 'oeste';
 
 export interface InputsState {
   wastes: WasteType[];
   area: AreaType;
+  selectedWaste: Waste | null;
+  setSelectedWaste: (w: Waste) => void;
+  selectedZone: Zone | null;
+  setSelectedZone: (z: Zone) => void;
   cocheras: { lat: string; lng: string };
   planta: { lat: string; lng: string };
   apiKey: string;
@@ -17,6 +27,12 @@ export interface InputsState {
   setApiKey: (key: string) => void;
   uploadedFile?: File;
   setUploadedFile: (f?: File) => void;
+  language: Lang;
+  setLanguage: (lang: Lang) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  step1Saved: boolean;
+  setStep1Saved: (saved: boolean) => void;
 }
 
 export interface Step1Artifacts {
@@ -29,8 +45,10 @@ export interface Step1Artifacts {
 export interface Step2State {
   orderedPreview: OrderedVia[] | null;
   step2Log: string[];
+  isProcessing: boolean;
   setStep2Log: (lines: string[] | ((prev:string[])=>string[])) => void;
   setOrderedPreview: (vias: OrderedVia[] | null) => void;
+  setIsProcessing: (processing: boolean) => void;
 }
 
 export interface OutputState {
@@ -41,25 +59,47 @@ export interface OutputState {
 export const useInputs = create<InputsState>((set) => ({
   wastes: ['Envases'],
   area: 'este',
+  selectedWaste: 'Envases',
+  selectedZone: 'este',
   cocheras: { lat: '', lng: '' },
   planta: { lat: '', lng: '' },
   apiKey: '',
   setWastes: (w) => set({ wastes: w }),
   setArea: (a) => set({ area: a }),
+  setSelectedWaste: (w) => set({ selectedWaste: w }),
+  setSelectedZone: (z) => set({ selectedZone: z, area: z }),
   setCocheras: (lat, lng) => set({ cocheras: { lat, lng } }),
   setPlanta: (lat, lng) => set({ planta: { lat, lng } }),
   setApiKey: (key) => set({ apiKey: key }),
   uploadedFile: undefined,
   setUploadedFile: (f) => set({ uploadedFile: f }),
+  language: (localStorage.getItem("lang") as Lang) ?? "en",
+  setLanguage: (lang) => {
+    set({ language: lang });
+    try { localStorage.setItem("lang", lang); } catch {}
+  },
+  theme: (localStorage.getItem("theme") as Theme) ?? "light",
+  setTheme: (theme) => {
+    set({ theme });
+    try { localStorage.setItem("theme", theme); } catch {}
+    // apply to <html> immediately
+    const root = document.documentElement;
+    if (theme === "dark") root.classList.add("dark");
+    else root.classList.remove("dark");
+  },
+  step1Saved: false,
+  setStep1Saved: (saved) => set({ step1Saved: saved }),
 }));
 
 export const useStep2 = create<Step2State>((set) => ({
   orderedPreview: null,
   step2Log: [],
+  isProcessing: false,
   setStep2Log: (lines) => set((state) => ({
     step2Log: typeof lines === 'function' ? lines(state.step2Log) : lines
   })),
   setOrderedPreview: (vias) => set({ orderedPreview: vias }),
+  setIsProcessing: (processing) => set({ isProcessing: processing }),
 }));
 
 export interface Step3State {
@@ -70,6 +110,11 @@ export interface Step3State {
   setRoutingArtifact: (artifact?: RoutingArtifact) => void;
   setIsRunningStep3: (running: boolean) => void;
   runStep3: () => Promise<void>;
+}
+
+export interface Step5State {
+  isExporting: boolean;
+  setIsExporting: (exporting: boolean) => void;
 }
 
 export const useStep3 = create<Step3State>((set) => ({
@@ -192,6 +237,11 @@ export const useStep4 = create<Step4State>((set) => ({
       set({ isRenderingStep4: false });
     }
   }
+}));
+
+export const useStep5 = create<Step5State>((set) => ({
+  isExporting: false,
+  setIsExporting: (exporting) => set({ isExporting: exporting }),
 }));
 
 export const useOutput = create<OutputState>((set) => ({

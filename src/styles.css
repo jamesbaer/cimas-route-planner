@@ -1,10 +1,4 @@
-/* App layout */
-.app {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
+/* App layout - neutralized to allow Tailwind grid layout */
 
 /* Left panel */
 .left-panel {
@@ -225,13 +219,7 @@
   background: #f8fafc;
 }
 
-/* Updated layout for new structure */
-.app-grid {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
+/* Updated layout for new structure - neutralized to allow Tailwind grid layout */
 
 .right-col {
   display: flex;
@@ -541,12 +529,9 @@
   background: #e9ecef;
 }
 
-/* Responsive */
+/* Responsive - neutralized to allow Tailwind responsive grid */
 @media (max-width: 900px) {
-  .app-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
+  /* .app-grid rules removed - Tailwind handles responsive layout */
   
   .left-panel {
     border-right: none;
