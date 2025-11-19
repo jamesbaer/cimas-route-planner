@@ -1,7 +1,7 @@
-import InputsCard from './components/InputsCard';
+import StepByStepFlow from './components/StepByStepFlow';
 import MapView from './components/MapView';
 import TopBar from './components/TopBar';
-import { Card, CardContent } from "./components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Loader2, Route, Map, Download } from "lucide-react";
 import { cn } from "./lib/utils";
@@ -30,15 +30,12 @@ export default function AppModern() {
       <TopBar />
       <main className="w-full">
         <div className="mx-auto w-full max-w-none sm:max-w-[calc(100vw-2rem)] md:max-w-[calc(100vw-4rem)] lg:max-w-[calc(100vw-8rem)] xl:max-w-[calc(100vw-12rem)] 2xl:max-w-[1269px] px-4 sm:px-5 lg:px-8 py-6">
-          {/* 2/5 | 3/5 on lg+, stack on smaller screens */}
-          <div className="grid gap-4 lg:grid-cols-[2fr_3fr] items-start">
-            {/* LEFT column: inputs only */}
-            <div>
-              <InputsCard />
-            </div>
-
-            {/* RIGHT column: actions on top + map below */}
-            <section className="space-y-6 min-w-0">
+          {/* Adjusted proportions for better button visibility */}
+          <div className="grid gap-4 lg:grid-cols-[5fr_7fr] items-start">
+            {/* LEFT column: inputs + actions */}
+            <div className="space-y-6">
+              <StepByStepFlow />
+              
               {/* Actions: side-by-side buttons */}
               <Card className="rounded-2xl">
                 <CardContent className="p-3 md:p-4">
@@ -47,7 +44,7 @@ export default function AppModern() {
                       variant="outline"
                       size="lg"
                       className={cn(
-                        "h-11 transition-colors",
+                        "h-11 transition-colors min-w-[140px] px-3",
                         "border border-border hover:border-foreground/40",
                         isSequencingRunning && "border-2 border-primary ring-1 ring-primary/30"
                       )}
@@ -62,9 +59,9 @@ export default function AppModern() {
                       }}
                     >
                       {isSequencingRunning ? (
-                        <><Loader2 className="w-5 h-5 animate-spin" /> {t("sequencing")}</>
+                        <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("sequencing")}</>
                       ) : (
-                        <><Route className="w-5 h-5" /> {t("sequencing")}</>
+                        <><Route className="w-4 h-4 mr-2" />{t("sequencing")}</>
                       )}
                     </Button>
 
@@ -72,7 +69,7 @@ export default function AppModern() {
                       variant="outline"
                       size="lg"
                       className={cn(
-                        "h-11 transition-colors",
+                        "h-11 transition-colors min-w-[140px] px-3",
                         "border border-border hover:border-foreground/40",
                         isRoutingRunning && "border-2 border-primary ring-1 ring-primary/30"
                       )}
@@ -87,9 +84,9 @@ export default function AppModern() {
                       }}
                     >
                       {isRoutingRunning ? (
-                        <><Loader2 className="w-5 h-5 animate-spin" /> {t("routing")}</>
+                        <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("routing")}</>
                       ) : (
-                        <><Map className="w-5 h-5" /> {t("routing")}</>
+                        <><Map className="w-4 h-4 mr-2" />{t("routing")}</>
                       )}
                     </Button>
 
@@ -97,7 +94,7 @@ export default function AppModern() {
                       variant="outline"
                       size="lg"
                       className={cn(
-                        "h-11 transition-colors",
+                        "h-11 transition-colors min-w-[140px] px-3",
                         "border border-border hover:border-foreground/40",
                         isExportRunning && "border-2 border-primary ring-1 ring-primary/30"
                       )}
@@ -112,19 +109,53 @@ export default function AppModern() {
                       }}
                     >
                       {isExportRunning ? (
-                        <><Loader2 className="w-5 h-5 animate-spin" /> {t("exportGpx")}</>
+                        <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("exportGpx")}</>
                       ) : (
-                        <><Download className="w-5 h-5" /> {t("exportGpx")}</>
+                        <><Download className="w-4 h-4 mr-2" />{t("exportGpx")}</>
                       )}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Route Information Card - Only show after routing */}
+              {step3.routingArtifact && (
+                <Card className="rounded-2xl">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium">
+                      {t("routeInformation")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">{t("totalStops")}:</span>
+                        <span className="font-medium">{step3.routingArtifact.via_count}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">{t("distance")}:</span>
+                        <span className="font-medium">
+                          {(step3.routingArtifact.totals.length_m / 1000).toFixed(1)} km
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">{t("time")}:</span>
+                        <span className="font-medium">
+                          {Math.floor(step3.routingArtifact.totals.duration_s / 3600)}h {Math.floor((step3.routingArtifact.totals.duration_s % 3600) / 60)}m
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* RIGHT column: map only */}
+            <section className="space-y-6 min-w-0">
               {/* Map */}
               <Card className="rounded-2xl">
                 <CardContent className="p-3 md:p-4">
-                  <div id="map-root" className="w-full h-[64vh] md:h-[72vh] lg:h-[74vh] rounded-xl overflow-hidden">
+                  <div id="map-root" className="w-full h-[68vh] md:h-[76vh] lg:h-[78vh] rounded-xl overflow-hidden">
                     <MapView /> {/* MapView must render ONLY the map container */}
                   </div>
                 </CardContent>

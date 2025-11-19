@@ -8,7 +8,8 @@ export type TKey =
   | "language" | "english" | "spanish"
   | "envases" | "resto" | "papel" | "reutilizables" | "vidrio" | "aceite"
   | "este" | "centro" | "oeste"
-  | "cocheras" | "planta";
+  | "cocheras" | "planta"
+  | "routeInformation" | "totalStops" | "distance" | "time";
 
 export const dict = {
   en: {
@@ -46,6 +47,10 @@ export const dict = {
     oeste: "West",
     cocheras: "Depot",
     planta: "Treatment Plant",
+    routeInformation: "Route Information",
+    totalStops: "Total Stops",
+    distance: "Distance",
+    time: "Time",
   },
   es: {
     inputs: "Entradas",
@@ -82,6 +87,10 @@ export const dict = {
     oeste: "Oeste",
     cocheras: "Cocheras",
     planta: "Planta",
+    routeInformation: "Información de Ruta",
+    totalStops: "Paradas",
+    distance: "Distancia",
+    time: "Tiempo",
   },
 } as const;
 

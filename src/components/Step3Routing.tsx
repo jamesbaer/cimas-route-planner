@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useStep3, useInputs, useStep4 } from '../store';
+import { useStep3, useStep4 } from '../store';
+import { getKey as getVaultKey } from '../security/keyVault';
+import { safeConsole, scrubUrl } from '../security/safeConsole';
 import { buildRouterGetUrlStep3, parseRoutingResponse } from '../utils/here';
 import { readJSON, writeJSON, exists } from '../utils/artifacts';
 import type { OrderedStopsArtifact, RoutingConfig } from '../types';
@@ -14,7 +16,6 @@ export default function Step3Routing() {
     setRoutingArtifact, 
     setIsRunningStep3 
   } = useStep3();
-  const { apiKey } = useInputs();
   const { runStep4Render } = useStep4();
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string>('');
@@ -35,8 +36,9 @@ export default function Step3Routing() {
         throw new Error('Run Step 2 first.');
       }
       
-      if (!apiKey.trim()) {
-        throw new Error('HERE API key not found. Run Step 2 first.');
+      const apiKey = getVaultKey();
+      if (!apiKey?.trim()) {
+        throw new Error('HERE API key not found. Please enter a HERE API key.');
       }
 
       // Load ordered stops from Step 2
@@ -83,14 +85,22 @@ export default function Step3Routing() {
         stepLog: (msg: string) => log.push(msg)
       });
 
+      log.push(`🔗 URL: ${scrubUrl(url)}`);
       log.push('🚀 Calling Router v8...');
+      setStep3Log(log);
+      safeConsole.log('Routing Request URL:', url);
 
       // Call Router API with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const response = await fetch(url, {
+        method: 'GET',
         signal: controller.signal,
+        referrerPolicy: 'no-referrer',
+        cache: 'no-store',
+        mode: 'cors',
+        credentials: 'omit',
       });
 
       clearTimeout(timeoutId);
@@ -151,8 +161,7 @@ export default function Step3Routing() {
         setError(`Routing failed: ${errorMsg}`);
       }
       
-      log.push(`❌ Error: ${errorMsg}`);
-      if (debug) setStep3Log(log);
+      setStep3Log(log);
     } finally {
       setIsRunningStep3(false);
     }

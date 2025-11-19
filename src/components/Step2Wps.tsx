@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Papa from 'papaparse';
-import { useStep2, useInputs, useStep4 } from '../store';
+import { useStep2, useStep4 } from '../store';
+import { getKey as getVaultKey } from '../security/keyVault';
+import { safeConsole, scrubUrl } from '../security/safeConsole';
 import { buildWpsUrl } from '../utils/here';
 import { readText, readJSON, writeJSON, exists, listStoredArtifacts, deleteArtifact } from '../utils/artifacts';
 import { sanitizeStops, type ViaStop } from '../utils/here';
@@ -9,7 +11,6 @@ import InlineError from './InlineError';
 
 export default function Step2Wps() {
   const { orderedPreview, step2Log, setStep2Log, setOrderedPreview, isProcessing, setIsProcessing } = useStep2();
-  const { apiKey } = useInputs();
   const { runStep4Render } = useStep4();
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string>('');
@@ -23,8 +24,9 @@ export default function Step2Wps() {
     const log: string[] = [];
 
     try {
-      // Check API key from Inputs store
-      if (!apiKey.trim()) {
+      // Check API key from vault
+      const apiKey = getVaultKey();
+      if (!apiKey?.trim()) {
         throw new Error('Please enter a HERE API key in the Input section.');
       }
 
@@ -99,7 +101,10 @@ export default function Step2Wps() {
         stepLog: (msg: string) => log.push(msg)
       });
 
-      log.push(`📏 GET URL length: ${url.length.toLocaleString()}`);
+      log.push(`📡 Calling HERE WPS...`);
+      log.push(`🔗 URL: ${scrubUrl(url)}`);
+      setStep2Log(log);
+      safeConsole.log('WPS Request URL:', url);
       
       // Debug: log destination parameters
       const urlObj = new URL(url);
@@ -115,7 +120,12 @@ export default function Step2Wps() {
       const timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const response = await fetch(url, {
+        method: 'GET',
         signal: controller.signal,
+        referrerPolicy: 'no-referrer',
+        cache: 'no-store',
+        mode: 'cors',
+        credentials: 'omit',
       });
 
       clearTimeout(timeoutId);
@@ -272,7 +282,7 @@ export default function Step2Wps() {
         data-step2-trigger
         className="primary"
         onClick={runStep2}
-        disabled={isProcessing || !apiKey.trim()}
+        disabled={isProcessing || !getVaultKey()?.trim()}
       >
         {isProcessing ? 'Processing…' : 'Run Sequencing'}
       </button>

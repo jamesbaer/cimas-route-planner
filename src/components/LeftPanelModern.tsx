@@ -18,10 +18,11 @@ const AREA_OPTIONS: AreaType[] = ['este','centro','oeste'];
 // Inputs Card Component
 function InputsCard() {
   const {
-    wastes, area, cocheras, planta, apiKey,
+    wastes, area, cocheras, planta,
     setWastes, setArea, setCocheras, setPlanta, setApiKey,
     uploadedFile, setUploadedFile
   } = useInputs();
+  const [apiKeyInput, setApiKeyInput] = useState('');
 
   const setStep1 = useOutput((s) => s.setStep1);
 
@@ -194,8 +195,8 @@ function InputsCard() {
           <Label className="text-sm font-medium">HERE API Key</Label>
           <Input 
             type="password" 
-            value={apiKey} 
-            onChange={(e) => setApiKey(e.target.value)}
+            value={apiKeyInput} 
+            onChange={(e) => { setApiKeyInput(e.target.value); setApiKey(e.target.value); }}
             placeholder="Enter your HERE API key"
             className="text-sm"
           />

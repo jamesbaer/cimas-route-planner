@@ -1,4 +1,4 @@
-import { MapContainer, Polyline, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet'
 import { useEffect, useRef } from 'react'
 import { LatLngBounds } from 'leaflet'
 import L from 'leaflet'
@@ -92,57 +92,14 @@ export default function MapView() {
   const { theme } = useInputs();
   const mapRef = useRef<L.Map | null>(null);
   
-  // Tile URLs for light and dark themes
-  const LIGHT_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-  const ATTR_LIGHT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-  const ATTR_DARK = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
-  
-  // Component to handle map reference and tile layers
+  // Component to handle map reference
   function MapEventHandler() {
     const map = useMap();
     
     useEffect(() => {
       // Store map reference
       mapRef.current = map;
-      
-      // Remove existing tile layers
-      map.eachLayer((layer) => {
-        if (layer instanceof L.TileLayer) {
-          map.removeLayer(layer);
-        }
-      });
-      
-      // Add themed tile layer
-      L.tileLayer(
-        theme === "dark" ? DARK_TILES : LIGHT_TILES,
-        { 
-          attribution: theme === "dark" ? ATTR_DARK : ATTR_LIGHT, 
-          maxZoom: 19 
-        }
-      ).addTo(map);
-    }, [map, theme]);
-    
-    useMapEvents({
-      add: () => {
-        // Map is ready, ensure tiles are applied
-        if (mapRef.current) {
-          mapRef.current.eachLayer((layer) => {
-            if (layer instanceof L.TileLayer) {
-              mapRef.current?.removeLayer(layer);
-            }
-          });
-          
-          L.tileLayer(
-            theme === "dark" ? DARK_TILES : LIGHT_TILES,
-            { 
-              attribution: theme === "dark" ? ATTR_DARK : ATTR_LIGHT, 
-              maxZoom: 19 
-            }
-          ).addTo(mapRef.current);
-        }
-      }
-    });
+    }, [map]);
     
     return null;
   }
@@ -165,6 +122,13 @@ export default function MapView() {
               }, 100);
             }}
           >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url={theme === 'dark' 
+            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          }
+        />
         <MapEventHandler />
         
         {step4Data && (

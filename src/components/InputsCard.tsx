@@ -23,10 +23,11 @@ const zones: Zone[] = ["este","centro","oeste"];
 
 export default function InputsCard() {
   const {
-    selectedWaste, selectedZone, cocheras, planta, apiKey,
+    selectedWaste, selectedZone, cocheras, planta,
     setSelectedWaste, setSelectedZone, setCocheras, setPlanta, setApiKey,
     uploadedFile, setUploadedFile, language, step1Saved, setStep1Saved
   } = useInputs();
+  const [apiKeyInput, setApiKeyInput] = useState('');
 
   const setStep1 = useOutput((s: any) => s.setStep1);
   const t = useT(language);
@@ -235,10 +236,10 @@ export default function InputsCard() {
           <Label className="text-sm font-medium">{t("hereKey")}</Label>
           <Input 
             type="password" 
-            value={apiKey} 
-            onChange={(e) => onApiKeyChange(e.target.value)}
+            value={apiKeyInput} 
+            onChange={(e) => { setApiKeyInput(e.target.value); onApiKeyChange(e.target.value); }}
             placeholder={t("enterHereKey")}
-            data-valid={Boolean(apiKey?.trim())}
+            data-valid={Boolean(apiKeyInput?.trim())}
           />
         </div>
 

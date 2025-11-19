@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { setKey as setVaultKey } from './security/keyVault';
 import type { OrderedVia, RoutingArtifact, Step4Data } from './types';
 
 export type Waste = "Envases"|"Resto"|"Papel"|"Reutilizables"|"Vidrio"|"Aceite";
@@ -19,12 +20,11 @@ export interface InputsState {
   setSelectedZone: (z: Zone) => void;
   cocheras: { lat: string; lng: string };
   planta: { lat: string; lng: string };
-  apiKey: string;
   setWastes: (w: WasteType[]) => void;
   setArea: (a: AreaType) => void;
   setCocheras: (lat: string, lng: string) => void;
   setPlanta: (lat: string, lng: string) => void;
-  setApiKey: (key: string) => void;
+  setApiKey: (key: string) => void; // calls keyVault, doesn't store in state
   uploadedFile?: File;
   setUploadedFile: (f?: File) => void;
   language: Lang;
@@ -59,18 +59,17 @@ export interface OutputState {
 export const useInputs = create<InputsState>((set) => ({
   wastes: ['Envases'],
   area: 'este',
-  selectedWaste: 'Envases',
-  selectedZone: 'este',
+  selectedWaste: null, // Start with no selection
+  selectedZone: null,  // Start with no selection
   cocheras: { lat: '', lng: '' },
   planta: { lat: '', lng: '' },
-  apiKey: '',
   setWastes: (w) => set({ wastes: w }),
   setArea: (a) => set({ area: a }),
   setSelectedWaste: (w) => set({ selectedWaste: w }),
   setSelectedZone: (z) => set({ selectedZone: z, area: z }),
   setCocheras: (lat, lng) => set({ cocheras: { lat, lng } }),
   setPlanta: (lat, lng) => set({ planta: { lat, lng } }),
-  setApiKey: (key) => set({ apiKey: key }),
+  setApiKey: (key) => { setVaultKey(key); }, // stores in memory-only vault
   uploadedFile: undefined,
   setUploadedFile: (f) => set({ uploadedFile: f }),
   language: (localStorage.getItem("lang") as Lang) ?? "en",
