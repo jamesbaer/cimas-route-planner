@@ -10,7 +10,7 @@ import { useT } from './i18n';
 import './tailwind.css';
 
 export default function AppModern() {
-  const { language } = useInputs();
+  const { language, selectedWastes, selectedRoutes } = useInputs();
   const t = useT(language);
   const step2 = useStep2();
   const step3 = useStep3();
@@ -25,6 +25,22 @@ export default function AppModern() {
   const isSequencingRunning = step2?.isProcessing || false;
   const isRoutingRunning = step3?.isRunningStep3 || false;
   const isExportRunning = step5?.isExporting || false;
+
+  // Generate dynamic route information title (similar to GPX naming)
+  const getRouteInformationTitle = () => {
+    const wastePart = selectedWastes.length > 0 
+      ? selectedWastes.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(', ')
+      : (language === 'es' ? 'Ruta' : 'Route');
+    const routePart = selectedRoutes.length > 0
+      ? selectedRoutes.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(', ')
+      : '';
+    
+    if (language === 'es') {
+      return routePart ? `${wastePart} Ruta ${routePart}` : `${wastePart} Ruta`;
+    } else {
+      return routePart ? `${wastePart} Route ${routePart}` : `${wastePart} Route`;
+    }
+  };
   return (
     <div className="min-h-dvh">
       <TopBar />
@@ -123,7 +139,7 @@ export default function AppModern() {
                 <Card className="rounded-2xl">
                   <CardHeader>
                     <CardTitle className="text-lg font-medium flex items-center gap-2">
-                      {t("routeInformation")}
+                      {getRouteInformationTitle()}
                       {isRoutingRunning && (
                         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                       )}
