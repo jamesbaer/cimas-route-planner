@@ -22,13 +22,13 @@ interface RoutingResponse {
 
 interface IngestionConfig {
   selected_wastes?: string[];
-  selected_route?: string;
+  selected_routes?: string[];  // Multi-select routes
 }
 
-export function titleRoute(route?: string): string {
-  if (!route) return "";
-  // Capitalize first letter of route name
-  return route.charAt(0).toUpperCase() + route.slice(1);
+export function titleRoutes(routes?: string[]): string {
+  if (!routes || routes.length === 0) return "";
+  // Capitalize and join multiple route names
+  return routes.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(", ");
 }
 
 export function sanitizeTitle(base: string): string {
@@ -165,7 +165,7 @@ interface OrderedStops {
   };
   meta?: {
     selected_wastes?: string[];
-    selected_route?: string;
+    selected_routes?: string[];  // Multi-select routes
   };
 }
 
@@ -175,7 +175,7 @@ export async function loadGpxData(): Promise<{
   destination?: { lat: number; lng: number };
   viaCount: number;
   selectedWastes: string[];
-  selectedRoute?: string;
+  selectedRoutes: string[];  // Multi-select routes
 }> {
   // Load routing response
   const routingResponse = await readJSON<RoutingResponse>('routing_response.json');
@@ -191,19 +191,19 @@ export async function loadGpxData(): Promise<{
   
   // Load naming config (prefer ingestion_config.json, fallback to ordered_stops.json.meta)
   let selectedWastes: string[] = [];
-  let selectedRoute: string | undefined;
+  let selectedRoutes: string[] = [];
   
   try {
     const ingestionConfig = await readJSON<IngestionConfig>('ingestion_config.json');
     if (ingestionConfig) {
       selectedWastes = ingestionConfig.selected_wastes || [];
-      selectedRoute = ingestionConfig.selected_route;
+      selectedRoutes = ingestionConfig.selected_routes || [];
     }
   } catch (e) {
     // Fallback to ordered_stops.json.meta
     if (orderedStops?.meta) {
       selectedWastes = orderedStops.meta.selected_wastes || [];
-      selectedRoute = orderedStops.meta.selected_route;
+      selectedRoutes = orderedStops.meta.selected_routes || [];
     }
   }
   
@@ -213,13 +213,13 @@ export async function loadGpxData(): Promise<{
     destination: orderedStops.routing_inputs?.destination,
     viaCount: orderedStops.routing_inputs?.vias?.length || 0,
     selectedWastes,
-    selectedRoute
+    selectedRoutes
   };
 }
 
-export function generateFilename(selectedWastes: string[], selectedRoute?: string): string {
+export function generateFilename(selectedWastes: string[], selectedRoutes?: string[]): string {
   const wastePart = selectedWastes.length > 0 ? selectedWastes.join(', ') : 'Ruta';
-  const routePart = titleRoute(selectedRoute);
+  const routePart = titleRoutes(selectedRoutes);
   
   const baseTitle = routePart ? `${wastePart} Ruta ${routePart}` : `${wastePart} Ruta`;
   const safeTitle = sanitizeTitle(baseTitle);

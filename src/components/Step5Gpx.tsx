@@ -6,7 +6,7 @@ import {
   buildGpxXml, 
   generateTrackName, 
   generateTrackDescription,
-  titleRoute 
+  titleRoutes 
 } from '../utils/gpx';
 import InlineError from './InlineError';
 
@@ -51,7 +51,7 @@ export default function Step5Gpx() {
       addLog('🚀 Starting GPX export...');
       
       // Load data
-      const { routingResponse, origin, destination, viaCount, selectedWastes, selectedRoute } = await loadGpxData();
+      const { routingResponse, origin, destination, viaCount, selectedWastes, selectedRoutes } = await loadGpxData();
       addLog('📂 Loaded routing_response.json and naming config');
       
       // Extract polylines from routing response
@@ -66,11 +66,11 @@ export default function Step5Gpx() {
       
       addLog(`✅ Found ${sectionPolylines.length} section polylines`);
       
-      // Generate filename using dynamic route name
+      // Generate filename using dynamic route names (multi-select)
       const wastePart = selectedWastes.length > 0 ? selectedWastes.join(', ') : 'Ruta';
-      const routePart = titleRoute(selectedRoute);
+      const routePart = titleRoutes(selectedRoutes);
       
-      // Generate filename: e.g., "Envases, Vidrio Ruta Centro.gpx"
+      // Generate filename: e.g., "Envases, Vidrio Ruta Gorliz, Bakio.gpx"
       const filename = language === "es" ? 
         (routePart ? `${wastePart} Ruta ${routePart}.gpx` : `${wastePart} Ruta.gpx`) :
         (routePart ? `${wastePart} Route ${routePart}.gpx` : `${wastePart} Route.gpx`);

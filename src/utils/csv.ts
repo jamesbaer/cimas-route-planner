@@ -58,8 +58,8 @@ export function detectSchema(headers: string[]): DetectedSchema {
 
 export interface ProcessInputs {
   file: File;
-  selectedWastes: string[];  // Dynamic from CSV headers
-  route: string;             // Dynamic from CSV headers (replaces area)
+  selectedWastes: string[];   // Dynamic from CSV headers (multi-select)
+  routes: string[];           // Dynamic from CSV headers (multi-select, replaces single route)
   cocheras: { lat: number; lng: number };
   planta: { lat: number; lng: number };
 }
@@ -72,7 +72,7 @@ export interface ProcessResult {
 }
 
 export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult> {
-  const { file, selectedWastes, route, cocheras, planta } = inputs;
+  const { file, selectedWastes, routes, cocheras, planta } = inputs;
 
   // Parse CSV
   const parsed = await parseCsv(file);
@@ -100,7 +100,7 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
   const col_municipio = findOptionalCol('municipio');
   const col_fid = findOptionalCol('fid');
 
-  // Filter rows by: total containers > 0 AND route column is nonblank
+  // Filter rows by: total containers > 0 AND belongs to at least one selected route
   const rowsSel: Array<Record<string, any>> = [];
   
   for (const r of parsed.data as any[]) {
@@ -108,8 +108,15 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
     const lng = Number(r[schema.lngCol]);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
-    // Check if selected route column is nonblank
-    if (!nonblank(r[route])) continue;
+    // Check if stop belongs to at least one selected route (OR logic)
+    let belongsToAnyRoute = false;
+    for (const routeCol of routes) {
+      if (nonblank(r[routeCol])) {
+        belongsToAnyRoute = true;
+        break;
+      }
+    }
+    if (!belongsToAnyRoute) continue;
 
     // Compute total containers across selected waste columns
     let totalContainers = 0;
@@ -128,7 +135,7 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
       lat,
       lng,
       service_s,
-      w_route: route,
+      w_route: routes.join(','),  // Store all selected routes
       w_wastes: selectedWastes.join(','),
       containers: totalContainers,
     };
@@ -147,7 +154,7 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
 
   const config = {
     selected_wastes: selectedWastes,
-    selected_route: route,
+    selected_routes: routes,  // Multi-select routes array
     counts_rule: '45s first container +20s each additional container',
     cocheras,
     planta,
@@ -161,7 +168,7 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
   const summaryLines = [
     '✅ Ingestion complete.',
     `Total rows:     ${originalRows}`,
-    `Selected rows:  ${rowsSel.length}  (wastes: [${selectedWastes.join(', ')}], route: ${route})`,
+    `Selected rows:  ${rowsSel.length}  (wastes: [${selectedWastes.join(', ')}], routes: [${routes.join(', ')}])`,
     `Saved stops →   /content/stops_filtered.csv`,
     `Saved config →  /content/ingestion_config.json`,
   ];

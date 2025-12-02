@@ -89,7 +89,7 @@ export default function Step2Wps() {
       const config = await readJSON<IngestionConfig>('ingestion_config.json');
       if (!config) throw new Error('Failed to read ingestion_config.json');
 
-      log.push(`✅ Config loaded: wastes [${config.selected_wastes.join(', ')}], route=${config.selected_route}`);
+      log.push(`✅ Config loaded: wastes [${config.selected_wastes.join(', ')}], routes=[${config.selected_routes.join(', ')}]`);
 
       // Build WPS URL
       log.push('🔗 Building WPS request...');
@@ -202,7 +202,7 @@ export default function Step2Wps() {
         },
         meta: {
           selected_wastes: config.selected_wastes,
-          selected_route: config.selected_route,
+          selected_routes: config.selected_routes,  // Multi-select routes
           departure,
           mode,
           improveFor,

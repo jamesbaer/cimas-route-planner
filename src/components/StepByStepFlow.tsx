@@ -43,7 +43,7 @@ export default function StepByStepFlow() {
     cocheras, planta, setCocheras, setPlanta, setApiKey,
     // Dynamic options
     availableWastes, setAvailableWastes, availableRoutes, setAvailableRoutes,
-    selectedWastes, setSelectedWastes, selectedRoute, setSelectedRoute,
+    selectedWastes, setSelectedWastes, selectedRoutes, setSelectedRoutes,
     uploadedFile, setUploadedFile, language, step1Saved, setStep1Saved
   } = useInputs();
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -81,8 +81,8 @@ export default function StepByStepFlow() {
         return !!uploadedFile && userInteracted.csv;
       case 1: // Waste Type (dynamic multi-select)
         return selectedWastes.length > 0 && userInteracted.waste;
-      case 2: // Route (dynamic single-select)
-        return !!selectedRoute && userInteracted.zone;
+      case 2: // Routes (dynamic multi-select)
+        return selectedRoutes.length > 0 && userInteracted.zone;
       case 3: // Depot Coordinates
         const coLat = Number(cocheras.lat);
         const coLng = Number(cocheras.lng);
@@ -109,7 +109,7 @@ export default function StepByStepFlow() {
     setAvailableWastes([]);
     setAvailableRoutes([]);
     setSelectedWastes([]);
-    setSelectedRoute(null);
+    setSelectedRoutes([]);
     setCocheras('', '');
     setPlanta('', '');
     setApiKey('');
@@ -129,8 +129,12 @@ export default function StepByStepFlow() {
   }, []);
 
   // Auto-advance when current step becomes valid (only if autoAdvanceEnabled)
+  // Skip auto-advance for waste types (step 1) and zones (step 2) to give users control
   useEffect(() => {
     if (!autoAdvanceEnabled) return;
+    
+    // Don't auto-advance for waste types (step 1) and zones (step 2)
+    if (currentStep === 1 || currentStep === 2) return;
     
     const isCurrentStepValid = validateStep(currentStep);
     if (isCurrentStepValid && currentStep < 5) {
@@ -139,7 +143,7 @@ export default function StepByStepFlow() {
       }, 800); // Small delay for better UX
       return () => clearTimeout(timer);
     }
-  }, [currentStep, uploadedFile, selectedWastes, selectedRoute, cocheras, planta, autoAdvanceEnabled]);
+  }, [currentStep, uploadedFile, selectedWastes, selectedRoutes, cocheras, planta, autoAdvanceEnabled]);
 
   // Auto-focus first input when advancing to text input steps
   useEffect(() => {
@@ -259,7 +263,7 @@ export default function StepByStepFlow() {
             setAvailableRoutes(schema.routeCols);
             // Reset selections when new file is uploaded
             setSelectedWastes([]);
-            setSelectedRoute(null);
+            setSelectedRoutes([]);
           },
           error: (error) => {
             console.error('Failed to parse CSV for schema detection:', error);
@@ -281,9 +285,12 @@ export default function StepByStepFlow() {
     setUserInteracted(prev => ({ ...prev, waste: true }));
   };
 
-  // Dynamic route selection (single-select)
-  const onRouteSelect = (route: string) => {
-    setSelectedRoute(route);
+  // Dynamic route selection (multi-select)
+  const onRouteToggle = (route: string) => {
+    const newSelection = selectedRoutes.includes(route)
+      ? selectedRoutes.filter(r => r !== route)
+      : [...selectedRoutes, route];
+    setSelectedRoutes(newSelection);
     setStep1Saved(false);
     setUserInteracted(prev => ({ ...prev, zone: true }));
   };
@@ -348,7 +355,7 @@ export default function StepByStepFlow() {
       const res = await processStep1({
         file: uploadedFile!,
         selectedWastes: selectedWastes,
-        route: selectedRoute!,
+        routes: selectedRoutes,  // Multi-select routes
         cocheras: { lat: Number(cocheras.lat), lng: Number(cocheras.lng) },
         planta: { lat: Number(planta.lat), lng: Number(planta.lng) },
       });
@@ -423,7 +430,7 @@ export default function StepByStepFlow() {
           </div>
         );
 
-      case 2: // Route (Dynamic Single-Select)
+      case 2: // Routes (Dynamic Multi-Select)
         return (
           <div className="space-y-4">
             {availableRoutes.length > 0 ? (
@@ -431,10 +438,10 @@ export default function StepByStepFlow() {
                 {availableRoutes.map(route => (
                   <OptionPill
                     key={route}
-                    selected={selectedRoute === route}
-                    onClick={() => onRouteSelect(route)}
+                    selected={selectedRoutes.includes(route)}
+                    onClick={() => onRouteToggle(route)}
                     className={cn(
-                      selectedRoute === route && userInteracted.zone && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700"
+                      selectedRoutes.includes(route) && userInteracted.zone && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700"
                     )}
                   >
                     {route.charAt(0).toUpperCase() + route.slice(1)}

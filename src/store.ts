@@ -25,8 +25,8 @@ export interface InputsState {
   setAvailableRoutes: (r: string[]) => void;
   selectedWastes: string[];
   setSelectedWastes: (w: string[]) => void;
-  selectedRoute: string | null;
-  setSelectedRoute: (r: string | null) => void;
+  selectedRoutes: string[];  // Multi-select routes
+  setSelectedRoutes: (r: string[]) => void;
   // Existing
   cocheras: { lat: string; lng: string };
   planta: { lat: string; lng: string };
@@ -78,8 +78,8 @@ export const useInputs = create<InputsState>((set) => ({
   setAvailableRoutes: (r) => set({ availableRoutes: r }),
   selectedWastes: [],
   setSelectedWastes: (w) => set({ selectedWastes: w }),
-  selectedRoute: null,
-  setSelectedRoute: (r) => set({ selectedRoute: r }),
+  selectedRoutes: [],  // Multi-select routes
+  setSelectedRoutes: (r) => set({ selectedRoutes: r }),
   // Existing
   cocheras: { lat: '', lng: '' },
   planta: { lat: '', lng: '' },
