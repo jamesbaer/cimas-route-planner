@@ -27,6 +27,11 @@ export interface InputsState {
   setSelectedWastes: (w: string[]) => void;
   selectedRoutes: string[];  // Multi-select routes
   setSelectedRoutes: (r: string[]) => void;
+  // Stop time configuration
+  baseStopTime: number;     // Base time in seconds (default 45)
+  timePerAdditionalContainer: number; // Time per additional container in seconds (default 20)
+  setBaseStopTime: (time: number) => void;
+  setTimePerAdditionalContainer: (time: number) => void;
   // Existing
   cocheras: { lat: string; lng: string };
   planta: { lat: string; lng: string };
@@ -80,6 +85,11 @@ export const useInputs = create<InputsState>((set) => ({
   setSelectedWastes: (w) => set({ selectedWastes: w }),
   selectedRoutes: [],  // Multi-select routes
   setSelectedRoutes: (r) => set({ selectedRoutes: r }),
+  // Stop time configuration
+  baseStopTime: 45,     // Default 45 seconds
+  timePerAdditionalContainer: 20, // Default 20 seconds
+  setBaseStopTime: (time) => set({ baseStopTime: time }),
+  setTimePerAdditionalContainer: (time) => set({ timePerAdditionalContainer: time }),
   // Existing
   cocheras: { lat: '', lng: '' },
   planta: { lat: '', lng: '' },

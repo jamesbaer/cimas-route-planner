@@ -62,6 +62,8 @@ export interface ProcessInputs {
   routes: string[];           // Dynamic from CSV headers (multi-select, replaces single route)
   cocheras: { lat: number; lng: number };
   planta: { lat: number; lng: number };
+  baseStopTime: number;       // Base time in seconds (configurable)
+  timePerAdditionalContainer: number; // Time per additional container in seconds (configurable)
 }
 
 export interface ProcessResult {
@@ -72,7 +74,7 @@ export interface ProcessResult {
 }
 
 export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult> {
-  const { file, selectedWastes, routes, cocheras, planta } = inputs;
+  const { file, selectedWastes, routes, cocheras, planta, baseStopTime, timePerAdditionalContainer } = inputs;
 
   // Parse CSV
   const parsed = await parseCsv(file);
@@ -128,8 +130,8 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
     // Include row if total containers > 0
     if (totalContainers <= 0) continue;
 
-    // Compute service_s
-    const service_s = serviceSecondsForContainers(totalContainers);
+    // Compute service_s using configurable parameters
+    const service_s = baseStopTime + timePerAdditionalContainer * Math.max(0, Math.round(totalContainers) - 1);
 
     const out: Record<string, any> = {
       lat,
@@ -155,7 +157,9 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
   const config = {
     selected_wastes: selectedWastes,
     selected_routes: routes,  // Multi-select routes array
-    counts_rule: '45s first container +20s each additional container',
+    base_stop_time: baseStopTime,
+    time_per_additional_container: timePerAdditionalContainer,
+    counts_rule: `${baseStopTime}s first container +${timePerAdditionalContainer}s each additional container`,
     cocheras,
     planta,
     source_file: file.name,

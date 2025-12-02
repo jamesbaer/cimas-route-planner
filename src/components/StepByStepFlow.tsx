@@ -44,6 +44,8 @@ export default function StepByStepFlow() {
     // Dynamic options
     availableWastes, setAvailableWastes, availableRoutes, setAvailableRoutes,
     selectedWastes, setSelectedWastes, selectedRoutes, setSelectedRoutes,
+    // Stop time configuration
+    baseStopTime, timePerAdditionalContainer, setBaseStopTime, setTimePerAdditionalContainer,
     uploadedFile, setUploadedFile, language, step1Saved, setStep1Saved
   } = useInputs();
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -63,6 +65,7 @@ export default function StepByStepFlow() {
     zone: false,
     depot: false,
     plant: false,
+    stopTime: false,
     apiKey: false
   });
 
@@ -95,7 +98,9 @@ export default function StepByStepFlow() {
         return Number.isFinite(plLat) && Number.isFinite(plLng) && 
                plLat >= -90 && plLat <= 90 && plLng >= -180 && plLng <= 180 &&
                userInteracted.plant;
-      case 5: // API Key
+      case 5: // Stop Time Configuration
+        return userInteracted.stopTime || (baseStopTime > 0 && timePerAdditionalContainer >= 0); // Allow default values
+      case 6: // API Key
         const key = getVaultKey();
         return !!key && key.trim().length > 0 && userInteracted.apiKey;
       default:
@@ -124,6 +129,7 @@ export default function StepByStepFlow() {
       zone: false,  // No default selection, user must interact
       depot: false,
       plant: false,
+      stopTime: false,
       apiKey: false
     });
   }, []);
@@ -133,17 +139,17 @@ export default function StepByStepFlow() {
   useEffect(() => {
     if (!autoAdvanceEnabled) return;
     
-    // Don't auto-advance for waste types (step 1) and zones (step 2)
-    if (currentStep === 1 || currentStep === 2) return;
+    // Don't auto-advance for waste types (step 1), zones (step 2), and stop time (step 5) to give users control
+    if (currentStep === 1 || currentStep === 2 || currentStep === 5) return;
     
     const isCurrentStepValid = validateStep(currentStep);
-    if (isCurrentStepValid && currentStep < 5) {
+    if (isCurrentStepValid && currentStep < 6) {
       const timer = setTimeout(() => {
         setCurrentStep(prev => prev + 1);
       }, 800); // Small delay for better UX
       return () => clearTimeout(timer);
     }
-  }, [currentStep, uploadedFile, selectedWastes, selectedRoutes, cocheras, planta, autoAdvanceEnabled]);
+  }, [currentStep, uploadedFile, selectedWastes, selectedRoutes, cocheras, planta, baseStopTime, timePerAdditionalContainer, autoAdvanceEnabled]);
 
   // Auto-focus first input when advancing to text input steps
   useEffect(() => {
@@ -204,14 +210,21 @@ export default function StepByStepFlow() {
     },
     {
       id: 5,
-      title: t("hereKey"),
+      title: language === 'es' ? 'Tiempo de parada' : 'Stop Time',
       description: "",
       isValid: validateStep(5),
-      isCompleted: validateStep(5)
+      isCompleted: validateStep(5) && currentStep > 5
+    },
+    {
+      id: 6,
+      title: t("hereKey"),
+      description: "",
+      isValid: validateStep(6),
+      isCompleted: validateStep(6)
     }
   ];
 
-  const canGoNext = currentStep < 5;
+  const canGoNext = currentStep < 6;
   const canGoPrev = currentStep > 0;
   const allStepsValid = steps.every(step => step.isValid);
 
@@ -329,6 +342,33 @@ export default function StepByStepFlow() {
     setStep1Saved(false);
   };
 
+  // Stop time configuration handlers
+  const onBaseStopTimeChange = (value: string) => {
+    if (value === '') {
+      setBaseStopTime(0); // Set to 0 when empty, validation will catch this
+    } else {
+      const time = Number(value);
+      if (!isNaN(time) && time > 0) {
+        setBaseStopTime(time);
+      }
+    }
+    setStep1Saved(false);
+    setUserInteracted(prev => ({ ...prev, stopTime: true }));
+  };
+
+  const onTimePerAdditionalContainerChange = (value: string) => {
+    if (value === '') {
+      setTimePerAdditionalContainer(0); // Set to 0 when empty
+    } else {
+      const time = Number(value);
+      if (!isNaN(time) && time >= 0) {
+        setTimePerAdditionalContainer(time);
+      }
+    }
+    setStep1Saved(false);
+    setUserInteracted(prev => ({ ...prev, stopTime: true }));
+  };
+
   const onApiKeyChange = (value: string) => {
     setApiKeyInput(value);
     setApiKey(value); // Sets in vault
@@ -349,6 +389,16 @@ export default function StepByStepFlow() {
       setErr('Please complete all steps before processing.');
       return;
     }
+    
+    // Validate stop time values specifically
+    if (baseStopTime <= 0) {
+      setErr(language === 'es' ? 'El tiempo base debe ser mayor que 0' : 'Base stop time must be greater than 0');
+      return;
+    }
+    if (timePerAdditionalContainer < 0) {
+      setErr(language === 'es' ? 'El tiempo adicional no puede ser negativo' : 'Additional time cannot be negative');
+      return;
+    }
 
     setBusy(true);
     try {
@@ -358,6 +408,8 @@ export default function StepByStepFlow() {
         routes: selectedRoutes,  // Multi-select routes
         cocheras: { lat: Number(cocheras.lat), lng: Number(cocheras.lng) },
         planta: { lat: Number(planta.lat), lng: Number(planta.lng) },
+        baseStopTime: baseStopTime,
+        timePerAdditionalContainer: timePerAdditionalContainer,
       });
 
       const csvText = await res.stopsCsvBlob.text();
@@ -522,7 +574,57 @@ export default function StepByStepFlow() {
           </div>
         );
 
-      case 5: // API Key
+      case 5: // Stop Time Configuration
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  {language === 'es' ? 'Tiempo base' : 'Base stop time'}
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="45"
+                    value={baseStopTime === 0 && userInteracted.stopTime ? '' : baseStopTime}
+                    onChange={(e) => onBaseStopTimeChange(e.target.value)}
+                    className={cn(
+                      validateStep(5) && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700",
+                      "pr-16"
+                    )}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    {language === 'es' ? 'segundos' : 'seconds'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  {language === 'es' ? 'Tiempo para contenedores extra' : 'Time per additional container'}
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="20"
+                    value={timePerAdditionalContainer === 0 && userInteracted.stopTime ? '' : timePerAdditionalContainer}
+                    onChange={(e) => onTimePerAdditionalContainerChange(e.target.value)}
+                    className={cn(
+                      validateStep(5) && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700",
+                      "pr-16"
+                    )}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                    {language === 'es' ? 'segundos' : 'seconds'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6: // API Key
         return (
           <div>
             <Label>{t("hereKey")}</Label>
@@ -537,7 +639,7 @@ export default function StepByStepFlow() {
                   inputMode="text"
                   spellCheck={false}
                   className={cn(
-                    validateStep(5) && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700",
+                    validateStep(6) && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700",
                     "pr-8"
                   )}
                 />
@@ -632,22 +734,36 @@ export default function StepByStepFlow() {
             {currentStep + 1} / {steps.length}
           </div>
 
-          {allStepsValid ? (
-            <Button 
-              onClick={runStep1} 
-              disabled={busy}
-              className={cn(
-                "shrink-0 transition-colors",
-                "border border-border hover:border-foreground/40",
-                step1Saved && "border-2 border-primary ring-1 ring-primary/30"
-              )}
-              size="sm"
-              variant="outline"
-              data-selected={step1Saved ? "true" : "false"}
-            >
-              {busy ? (language === 'es' ? 'Procesando...' : 'Processing...') : (step1Saved ? (language === 'es' ? '✓ Guardado' : '✓ Saved') : t("processSave"))}
-            </Button>
+          {currentStep === 6 ? (
+            // Last step (API Key) - Show Save and Process button
+            allStepsValid ? (
+              <Button 
+                onClick={runStep1} 
+                disabled={busy}
+                className={cn(
+                  "shrink-0 transition-colors",
+                  "border border-border hover:border-foreground/40",
+                  step1Saved && "border-2 border-primary ring-1 ring-primary/30"
+                )}
+                size="sm"
+                variant="outline"
+                data-selected={step1Saved ? "true" : "false"}
+              >
+                {busy ? (language === 'es' ? 'Procesando...' : 'Processing...') : (step1Saved ? (language === 'es' ? '✓ Guardado' : '✓ Saved') : t("processSave"))}
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={true}
+                aria-label="Next"
+                className="h-9 w-9 shrink-0 opacity-50"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            )
           ) : (
+            // All other steps - Show forward button
             <Button
               variant="ghost"
               size="icon"
