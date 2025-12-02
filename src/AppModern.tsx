@@ -118,33 +118,42 @@ export default function AppModern() {
                 </CardContent>
               </Card>
 
-              {/* Route Information Card - Only show after routing */}
-              {step3.routingArtifact && (
+              {/* Route Information Card - Show after routing or during routing */}
+              {(step3.routingArtifact || isRoutingRunning) && (
                 <Card className="rounded-2xl">
                   <CardHeader>
-                    <CardTitle className="text-lg font-medium">
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
                       {t("routeInformation")}
+                      {isRoutingRunning && (
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="grid grid-cols-1 gap-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">{t("totalStops")}:</span>
-                        <span className="font-medium">{step3.routingArtifact.via_count}</span>
+                    {isRoutingRunning && !step3.routingArtifact ? (
+                      <div className="text-sm text-muted-foreground animate-pulse">
+                        Calculating optimal route...
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">{t("distance")}:</span>
-                        <span className="font-medium">
-                          {(step3.routingArtifact.totals.length_m / 1000).toFixed(1)} km
-                        </span>
+                    ) : step3.routingArtifact ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">{t("totalStops")}:</span>
+                          <span className="font-medium">{step3.routingArtifact.via_count}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">{t("distance")}:</span>
+                          <span className="font-medium">
+                            {(step3.routingArtifact.totals.length_m / 1000).toFixed(1)} km
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">{t("time")}:</span>
+                          <span className="font-medium">
+                            {Math.floor(step3.routingArtifact.totals.duration_s / 3600)}h {Math.floor((step3.routingArtifact.totals.duration_s % 3600) / 60)}m
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">{t("time")}:</span>
-                        <span className="font-medium">
-                          {Math.floor(step3.routingArtifact.totals.duration_s / 3600)}h {Math.floor((step3.routingArtifact.totals.duration_s % 3600) / 60)}m
-                        </span>
-                      </div>
-                    </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               )}

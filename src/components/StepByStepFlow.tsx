@@ -6,9 +6,10 @@ import { Label } from './ui/label';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { getKey as getVaultKey, clearKey as clearVaultKey } from '../security/keyVault';
 import { useInputs } from '../store';
-import type { Waste, Zone } from '../store';
+// import type { Waste, Zone } from '../store'; // Legacy types, not used in dynamic mode
 import { useOutput } from '../store';
-import { processStep1 } from '../utils/csv';
+import { processStep1, detectSchema } from '../utils/csv';
+import Papa from 'papaparse';
 import { writeText, writeJSON } from '../utils/artifacts';
 import Step2Wps from './Step2Wps';
 import Step3Routing from './Step3Routing';
@@ -17,14 +18,15 @@ import { cn } from '../lib/utils';
 import { useT } from '../i18n';
 import { OptionPill } from './inputs/OptionPill';
 
-const wastes: Waste[] = ["Envases","Resto","Papel","Reutilizables","Vidrio","Aceite"];
-const zones: Zone[] = ["este","centro","oeste"];
+// Legacy hard-coded options (kept for backward compatibility)
+// const wastes: Waste[] = ["Envases","Resto","Papel","Reutilizables","Vidrio","Aceite"];
+// const zones: Zone[] = ["este","centro","oeste"];
 
-// Capitalize zone names for display
-const getZoneDisplayName = (zone: Zone, t: (key: any) => string) => {
-  const translated = t(zone as any);
-  return translated.charAt(0).toUpperCase() + translated.slice(1);
-};
+// Capitalize zone names for display (legacy - not used in dynamic mode)
+// const getZoneDisplayName = (zone: Zone, t: (key: any) => string) => {
+//   const translated = t(zone as any);
+//   return translated.charAt(0).toUpperCase() + translated.slice(1);
+// };
 
 type StepData = {
   id: number;
@@ -36,8 +38,12 @@ type StepData = {
 
 export default function StepByStepFlow() {
   const {
-    selectedWaste, selectedZone, cocheras, planta,
-    setSelectedWaste, setSelectedZone, setCocheras, setPlanta, setApiKey,
+    // Legacy (not used in dynamic mode)
+    // selectedWaste, selectedZone, setSelectedWaste, setSelectedZone,
+    cocheras, planta, setCocheras, setPlanta, setApiKey,
+    // Dynamic options
+    availableWastes, setAvailableWastes, availableRoutes, setAvailableRoutes,
+    selectedWastes, setSelectedWastes, selectedRoute, setSelectedRoute,
     uploadedFile, setUploadedFile, language, step1Saved, setStep1Saved
   } = useInputs();
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -73,10 +79,10 @@ export default function StepByStepFlow() {
     switch (stepIndex) {
       case 0: // CSV Upload
         return !!uploadedFile && userInteracted.csv;
-      case 1: // Waste Type
-        return !!selectedWaste && userInteracted.waste;
-      case 2: // Zone
-        return !!selectedZone && userInteracted.zone;
+      case 1: // Waste Type (dynamic multi-select)
+        return selectedWastes.length > 0 && userInteracted.waste;
+      case 2: // Route (dynamic single-select)
+        return !!selectedRoute && userInteracted.zone;
       case 3: // Depot Coordinates
         const coLat = Number(cocheras.lat);
         const coLng = Number(cocheras.lng);
@@ -100,6 +106,10 @@ export default function StepByStepFlow() {
   // Clear inputs on component mount
   useEffect(() => {
     setUploadedFile(undefined);
+    setAvailableWastes([]);
+    setAvailableRoutes([]);
+    setSelectedWastes([]);
+    setSelectedRoute(null);
     setCocheras('', '');
     setPlanta('', '');
     setApiKey('');
@@ -129,7 +139,7 @@ export default function StepByStepFlow() {
       }, 800); // Small delay for better UX
       return () => clearTimeout(timer);
     }
-  }, [currentStep, uploadedFile, selectedWaste, selectedZone, cocheras, planta, autoAdvanceEnabled]);
+  }, [currentStep, uploadedFile, selectedWastes, selectedRoute, cocheras, planta, autoAdvanceEnabled]);
 
   // Auto-focus first input when advancing to text input steps
   useEffect(() => {
@@ -229,25 +239,67 @@ export default function StepByStepFlow() {
     }
   };
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     setUploadedFile(f);
     setUploadSuccess(!!f);
     setStep1Saved(false);
     setUserInteracted(prev => ({ ...prev, csv: true }));
+    
+    // Detect schema from CSV headers
+    if (f) {
+      try {
+        Papa.parse(f, {
+          header: true,
+          preview: 1, // Only read first row to get headers
+          complete: (results) => {
+            const headers = results.meta.fields || [];
+            const schema = detectSchema(headers);
+            setAvailableWastes(schema.wasteCols);
+            setAvailableRoutes(schema.routeCols);
+            // Reset selections when new file is uploaded
+            setSelectedWastes([]);
+            setSelectedRoute(null);
+          },
+          error: (error) => {
+            console.error('Failed to parse CSV for schema detection:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Failed to detect schema:', error);
+      }
+    }
   };
 
-  const onWasteSelect = (waste: string) => {
-    setSelectedWaste(waste as Waste);
+  // Dynamic waste selection (multi-select)
+  const onWasteToggle = (waste: string) => {
+    const newSelection = selectedWastes.includes(waste)
+      ? selectedWastes.filter(w => w !== waste)
+      : [...selectedWastes, waste];
+    setSelectedWastes(newSelection);
     setStep1Saved(false);
     setUserInteracted(prev => ({ ...prev, waste: true }));
   };
 
-  const onZoneSelect = (zone: string) => {
-    setSelectedZone(zone as Zone);
+  // Dynamic route selection (single-select)
+  const onRouteSelect = (route: string) => {
+    setSelectedRoute(route);
     setStep1Saved(false);
     setUserInteracted(prev => ({ ...prev, zone: true }));
   };
+
+  // Legacy handlers (kept for compatibility but not used in dynamic mode)
+  // const onWasteSelect = (waste: string) => {
+  //   setSelectedWaste(waste as Waste);
+  //   setStep1Saved(false);
+  //   setUserInteracted(prev => ({ ...prev, waste: true }));
+  // };
+
+  // const onZoneSelect = (zone: string) => {
+  //   setSelectedZone(zone as Zone);
+  //   setStep1Saved(false);
+  //   setUserInteracted(prev => ({ ...prev, zone: true }));
+  // };
 
   const onCoordinatesChange = (field: 'cocheras' | 'planta', coord: 'lat' | 'lng', value: string) => {
     if (field === 'cocheras') {
@@ -295,8 +347,8 @@ export default function StepByStepFlow() {
     try {
       const res = await processStep1({
         file: uploadedFile!,
-        selectedWastes: [selectedWaste!],
-        area: selectedZone!,
+        selectedWastes: selectedWastes,
+        route: selectedRoute!,
         cocheras: { lat: Number(cocheras.lat), lng: Number(cocheras.lng) },
         planta: { lat: Number(planta.lat), lng: Number(planta.lng) },
       });
@@ -347,43 +399,51 @@ export default function StepByStepFlow() {
           </div>
         );
 
-      case 1: // Waste Type
+      case 1: // Waste Type (Dynamic Multi-Select)
         return (
           <div>
-            <div className="grid grid-cols-3 gap-2">
-              {wastes.map(waste => (
-                <OptionPill
-                  key={waste}
-                  selected={selectedWaste === waste}
-                  onClick={() => onWasteSelect(waste)}
-                  className={cn(
-                    selectedWaste === waste && userInteracted.waste && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700"
-                  )}
-                >
-                  {t(waste.toLowerCase() as any)}
-                </OptionPill>
-              ))}
-            </div>
+            {availableWastes.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {availableWastes.map(waste => (
+                  <OptionPill
+                    key={waste}
+                    selected={selectedWastes.includes(waste)}
+                    onClick={() => onWasteToggle(waste)}
+                    className={cn(
+                      selectedWastes.includes(waste) && userInteracted.waste && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700"
+                    )}
+                  >
+                    {waste}
+                  </OptionPill>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Upload a CSV file to see available waste types</p>
+            )}
           </div>
         );
 
-      case 2: // Zone
+      case 2: // Route (Dynamic Single-Select)
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-2">
-              {zones.map(zone => (
-                <OptionPill
-                  key={zone}
-                  selected={selectedZone === zone}
-                  onClick={() => onZoneSelect(zone)}
-                  className={cn(
-                    selectedZone === zone && userInteracted.zone && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700"
-                  )}
-                >
-                  {getZoneDisplayName(zone, t)}
-                </OptionPill>
-              ))}
-            </div>
+            {availableRoutes.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {availableRoutes.map(route => (
+                  <OptionPill
+                    key={route}
+                    selected={selectedRoute === route}
+                    onClick={() => onRouteSelect(route)}
+                    className={cn(
+                      selectedRoute === route && userInteracted.zone && "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700"
+                    )}
+                  >
+                    {route.charAt(0).toUpperCase() + route.slice(1)}
+                  </OptionPill>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Upload a CSV file to see available routes</p>
+            )}
           </div>
         );
 

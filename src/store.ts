@@ -18,6 +18,16 @@ export interface InputsState {
   setSelectedWaste: (w: Waste) => void;
   selectedZone: Zone | null;
   setSelectedZone: (z: Zone) => void;
+  // Dynamic options from CSV
+  availableWastes: string[];
+  setAvailableWastes: (w: string[]) => void;
+  availableRoutes: string[];
+  setAvailableRoutes: (r: string[]) => void;
+  selectedWastes: string[];
+  setSelectedWastes: (w: string[]) => void;
+  selectedRoute: string | null;
+  setSelectedRoute: (r: string | null) => void;
+  // Existing
   cocheras: { lat: string; lng: string };
   planta: { lat: string; lng: string };
   setWastes: (w: WasteType[]) => void;
@@ -61,6 +71,16 @@ export const useInputs = create<InputsState>((set) => ({
   area: 'este',
   selectedWaste: null, // Start with no selection
   selectedZone: null,  // Start with no selection
+  // Dynamic options from CSV
+  availableWastes: [],
+  setAvailableWastes: (w) => set({ availableWastes: w }),
+  availableRoutes: [],
+  setAvailableRoutes: (r) => set({ availableRoutes: r }),
+  selectedWastes: [],
+  setSelectedWastes: (w) => set({ selectedWastes: w }),
+  selectedRoute: null,
+  setSelectedRoute: (r) => set({ selectedRoute: r }),
+  // Existing
   cocheras: { lat: '', lng: '' },
   planta: { lat: '', lng: '' },
   setWastes: (w) => set({ wastes: w }),

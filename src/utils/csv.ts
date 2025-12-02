@@ -1,54 +1,65 @@
 import Papa from 'papaparse';
 
-// Utilities mirror the Colab cell
+// ============ Dynamic Schema Detection Logic ============
 
-function unidecodeLite(s: string): string {
-  // basic accent strip for our header matching needs
-  return s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+// Helper: Check if header is blank, "Unnamed:...", or Papa Parse default (_1, _2, etc.)
+function headerIsBlank(s: string): boolean {
+  if (!s || s.trim() === '') return true;
+  if (s.startsWith('Unnamed:')) return true;
+  // Exclude Papa Parse default column names (_1, _2, _3, etc.)
+  if (/^_\d+$/.test(s)) return true;
+  return false;
 }
 
-function norm(s: string): string {
-  s = unidecodeLite(String(s)).toLowerCase().trim();
-  s = s.replace(/[^a-z0-9]+/g, ' ');
-  return s.replace(/\s+/g, ' ').trim();
-}
-
-function findCol(headers: string[], want: string, required = true): string | null {
-  const wantN = norm(want);
-  for (const h of headers) {
-    if (norm(h) === wantN) return h;
-  }
-  if (required) {
-    const list = headers.join('\n- ');
-    throw new Error(`Missing required column: "${want}".\nFound columns:\n- ${list}`);
-  }
-  return null;
-}
-
-function asBoolSi(v: unknown): boolean {
-  if (v === null || v === undefined) return false;
-  return String(v).trim().toLowerCase() === 'si';
-}
-
+// Helper: Check if value is non-blank
 function nonblank(v: unknown): boolean {
   if (v === null || v === undefined) return false;
   return String(v).trim() !== '';
 }
 
-function serviceSecondsForContainers(n: unknown): number {
-  const num = Number(n);
-  const count = Number.isFinite(num) ? Math.round(num) : 1;
-  const c = Math.max(1, count);
-  return 45 + 20 * (c - 1);
+// Parse container count matching Colab logic
+export function parseContainerCount(x: unknown): number {
+  if (x === null || x === undefined) return 0;
+  const s = String(x).trim();
+  if (!s) return 0;
+  const low = s.toLowerCase();
+  // blank / NaN / "no" | "n" | "none" | "0" => 0
+  if (['no', 'n', 'none', '0'].includes(low)) return 0;
+  // "yes" | "si" | "sí" | "s" | "y" | "1" => 1
+  if (['yes', 'si', 'sí', 's', 'y', '1'].includes(low)) return 1;
+  // integer ≥ 2 => that number
+  const n = Number(s.replace(',', '.'));
+  // other nonblank text => 1
+  return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 1;
 }
 
-export type Waste = 'Envases'|'Resto'|'Papel'|'Reutilizables'|'Vidrio'|'Aceite';
-export type Area = 'este'|'centro'|'oeste';
+// Service time calculation: 45s first container + 20s each additional
+export function serviceSecondsForContainers(n: number): number {
+  return 45 + 20 * Math.max(0, Math.round(n) - 1);
+}
+
+// Detect schema from headers
+export interface DetectedSchema {
+  latCol: string;
+  lngCol: string;
+  wasteCols: string[];
+  routeCols: string[];
+}
+
+export function detectSchema(headers: string[]): DetectedSchema {
+  const latCol = headers[0] || 'lat';
+  const lngCol = headers[1] || 'lng';
+  const wasteCols = headers.slice(2, 8).filter(h => !headerIsBlank(h));
+  const routeCols = headers.slice(8, 18).filter(h => !headerIsBlank(h));
+  return { latCol, lngCol, wasteCols, routeCols };
+}
+
+// ============ CSV Processing (Dynamic Schema) ============
 
 export interface ProcessInputs {
   file: File;
-  selectedWastes: Waste[];
-  area: Area;
+  selectedWastes: string[];  // Dynamic from CSV headers
+  route: string;             // Dynamic from CSV headers (replaces area)
   cocheras: { lat: number; lng: number };
   planta: { lat: number; lng: number };
 }
@@ -61,86 +72,71 @@ export interface ProcessResult {
 }
 
 export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult> {
-  const { file, selectedWastes, area, cocheras, planta } = inputs;
+  const { file, selectedWastes, route, cocheras, planta } = inputs;
 
+  // Parse CSV
   const parsed = await parseCsv(file);
   if (!parsed.data.length) throw new Error('CSV appears empty.');
 
   const headers = parsed.meta.fields ?? Object.keys(parsed.data[0] ?? {});
   if (!headers.length) throw new Error('Could not detect headers.');
 
-  // Column resolution (robust to accents/hyphens/spacing)
-  const col_lat    = findCol(headers, 'lat')!;
-  const col_lng    = findCol(headers, 'long') ?? findCol(headers, 'lng') ?? findCol(headers, 'lon')!;
-  const col_env    = findCol(headers, 'Envase final')!;
-  const col_res    = findCol(headers, 'Resto final')!;
-  const col_pap    = findCol(headers, 'Papel final')!;
-  const col_reu    = findCol(headers, 'Reutilizables final')!;
-  const col_vid    = findCol(headers, 'Vidrio final')!;
-  const col_ace    = findCol(headers, 'Aceite final')!;
-  const col_este   = findCol(headers, 'Orden recogida resto (este)')!;
-  const col_centro = findCol(headers, 'Orden recogida resto (centro)')!;
-  const col_oeste  = findCol(headers, 'Orden recogida resto (oeste)')!;
-  const col_cont_resto = findCol(headers, 'Propuesta cantidad contenedores resto', false);
-  const col_cont_env   = findCol(headers, 'Propuesta cantidad contenedores envases', false);
-  const col_cont_papel = findCol(headers, 'Propuesta cantidad contenedores papel carton', false);
-  const col_pueblo     = findCol(headers, 'PUEBLO', false);
-  const col_municipio  = findCol(headers, 'MUNICIPIO', false);
-  const col_fid        = findCol(headers, 'fid', false);
-
+  // Dynamic schema detection
+  const schema = detectSchema(headers);
   const originalRows = parsed.data.length;
 
-  // Map selection -> column flag
-  const wasteFlagMap: Record<Waste, (row: any) => boolean> = {
-    Envases: (r) => asBoolSi(r[col_env]),
-    Resto: (r) => asBoolSi(r[col_res]),
-    Papel: (r) => asBoolSi(r[col_pap]),
-    Reutilizables: (r) => asBoolSi(r[col_reu]),
-    Vidrio: (r) => asBoolSi(r[col_vid]),
-    Aceite: (r) => asBoolSi(r[col_ace]),
+  // Optional pass-through columns (try to find them by normalized name)
+  const findOptionalCol = (name: string): string | null => {
+    const normalizedName = name.toLowerCase();
+    for (const h of headers) {
+      if (h.toLowerCase() === normalizedName || h.toLowerCase().includes(normalizedName)) {
+        return h;
+      }
+    }
+    return null;
   };
 
-  const areaColMap: Record<Area, (row: any) => boolean> = {
-    este:   (r) => nonblank(r[col_este]),
-    centro: (r) => nonblank(r[col_centro]),
-    oeste:  (r) => nonblank(r[col_oeste]),
-  };
+  const col_pueblo = findOptionalCol('pueblo');
+  const col_municipio = findOptionalCol('municipio');
+  const col_fid = findOptionalCol('fid');
 
-  // Filter + compute service_s
+  // Filter rows by: total containers > 0 AND route column is nonblank
   const rowsSel: Array<Record<string, any>> = [];
+  
   for (const r of parsed.data as any[]) {
-    const lat = Number(r[col_lat]);
-    const lng = Number(r[col_lng]);
+    const lat = Number(r[schema.latCol]);
+    const lng = Number(r[schema.lngCol]);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
-    const wasteOk = selectedWastes.some((w) => wasteFlagMap[w](r));
-    if (!wasteOk) continue;
+    // Check if selected route column is nonblank
+    if (!nonblank(r[route])) continue;
 
-    if (!areaColMap[area](r)) continue;
-
-    const containersFor = (wt: Waste): number => {
-      if (wt === 'Envases' && col_cont_env) return Number(r[col_cont_env] ?? 1);
-      if (wt === 'Papel' && col_cont_papel) return Number(r[col_cont_papel] ?? 1);
-      if (wt === 'Resto' && col_cont_resto) return Number(r[col_cont_resto] ?? 1);
-      return 1;
-    };
-
-    let service = 0;
-    for (const wt of selectedWastes) {
-      if (wasteFlagMap[wt](r)) service += serviceSecondsForContainers(containersFor(wt));
+    // Compute total containers across selected waste columns
+    let totalContainers = 0;
+    for (const wasteCol of selectedWastes) {
+      const cellValue = r[wasteCol];
+      totalContainers += parseContainerCount(cellValue);
     }
-    service = Math.max(45, service);
+
+    // Include row if total containers > 0
+    if (totalContainers <= 0) continue;
+
+    // Compute service_s
+    const service_s = serviceSecondsForContainers(totalContainers);
 
     const out: Record<string, any> = {
       lat,
       lng,
-      service_s: service,
-      w_area: area,
+      service_s,
+      w_route: route,
       w_wastes: selectedWastes.join(','),
+      containers: totalContainers,
     };
-    if (col_pueblo) out.pueblo = r[col_pueblo];
-    if (col_municipio) out.municipio = r[col_municipio];
-    if (col_fid) out.fid = r[col_fid];
+    
+    // Add optional pass-through columns
+    if (col_pueblo && r[col_pueblo]) out.pueblo = r[col_pueblo];
+    if (col_municipio && r[col_municipio]) out.municipio = r[col_municipio];
+    if (col_fid && r[col_fid]) out.fid = r[col_fid];
 
     rowsSel.push(out);
   }
@@ -151,8 +147,8 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
 
   const config = {
     selected_wastes: selectedWastes,
-    selected_area: area,
-    counts_rule: '45s first container +20s each additional (per selected waste)',
+    selected_route: route,
+    counts_rule: '45s first container +20s each additional container',
     cocheras,
     planta,
     source_file: file.name,
@@ -165,9 +161,9 @@ export async function processStep1(inputs: ProcessInputs): Promise<ProcessResult
   const summaryLines = [
     '✅ Ingestion complete.',
     `Total rows:     ${originalRows}`,
-    `Selected rows:  ${rowsSel.length}  (wastes ANY of [${selectedWastes.join(', ')}], area=${area})`,
-    `Saved stops →   /content/stops_filtered.csv` ,
-    `Saved config →  /content/ingestion_config.json` ,
+    `Selected rows:  ${rowsSel.length}  (wastes: [${selectedWastes.join(', ')}], route: ${route})`,
+    `Saved stops →   /content/stops_filtered.csv`,
+    `Saved config →  /content/ingestion_config.json`,
   ];
 
   const preview = rowsSel.slice(0, 10);

@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { useStep5, useInputs } from '../store';
-import { useT } from '../i18n';
+// import { useT } from '../i18n'; // Not used in dynamic mode
 import { 
   loadGpxData, 
   buildGpxXml, 
   generateTrackName, 
   generateTrackDescription,
-  titleArea 
+  titleRoute 
 } from '../utils/gpx';
 import InlineError from './InlineError';
 
 export default function Step5Gpx() {
   const { language } = useInputs();
-  const t = useT(language);
+  // const t = useT(language); // Not used in dynamic mode
   const { isExporting, setIsExporting } = useStep5();
   const [decimation, setDecimation] = useState(1);
   const [log, setLog] = useState<string[]>([]);
@@ -51,7 +51,7 @@ export default function Step5Gpx() {
       addLog('🚀 Starting GPX export...');
       
       // Load data
-      const { routingResponse, origin, destination, viaCount, selectedWastes, selectedArea } = await loadGpxData();
+      const { routingResponse, origin, destination, viaCount, selectedWastes, selectedRoute } = await loadGpxData();
       addLog('📂 Loaded routing_response.json and naming config');
       
       // Extract polylines from routing response
@@ -66,22 +66,16 @@ export default function Step5Gpx() {
       
       addLog(`✅ Found ${sectionPolylines.length} section polylines`);
       
-      // Generate localized filename and track info
-      const localizedWasteName = selectedWastes.length > 0 ? 
-        t(selectedWastes[0].toLowerCase() as "envases" | "resto" | "papel" | "reutilizables" | "vidrio" | "aceite") : 
-        'Route';
-      const localizedZoneName = selectedArea ? t(selectedArea as "este" | "centro" | "oeste") : '';
-      
-      // Generate filename based on language
-      const filename = language === "es" ? 
-        // Spanish format: "Envases Ligeros Ruta Este.gpx"
-        (localizedZoneName ? `${localizedWasteName} Ruta ${localizedZoneName}.gpx` : `${localizedWasteName} Ruta.gpx`) :
-        // English format: "Residual Waste East Route.gpx"
-        (localizedZoneName ? `${localizedWasteName} ${localizedZoneName} Route.gpx` : `${localizedWasteName} Route.gpx`);
-      
+      // Generate filename using dynamic route name
       const wastePart = selectedWastes.length > 0 ? selectedWastes.join(', ') : 'Ruta';
-      const areaPart = titleArea(selectedArea);
-      const baseTitle = areaPart ? `${wastePart} Ruta ${areaPart}` : `${wastePart} Ruta`;
+      const routePart = titleRoute(selectedRoute);
+      
+      // Generate filename: e.g., "Envases, Vidrio Ruta Centro.gpx"
+      const filename = language === "es" ? 
+        (routePart ? `${wastePart} Ruta ${routePart}.gpx` : `${wastePart} Ruta.gpx`) :
+        (routePart ? `${wastePart} Route ${routePart}.gpx` : `${wastePart} Route.gpx`);
+      
+      const baseTitle = routePart ? `${wastePart} Ruta ${routePart}` : `${wastePart} Ruta`;
       const trackName = generateTrackName(baseTitle);
       const trackDescription = generateTrackDescription(routingResponse.totals, viaCount);
       

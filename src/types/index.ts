@@ -2,7 +2,7 @@ export type LatLng = { lat: number; lng: number };
 
 export type IngestionConfig = {
   selected_wastes: string[];
-  selected_area: string;    // "este" | "centro" | "oeste"
+  selected_route: string;    // Dynamic route name from CSV header
   counts_rule: string;
   cocheras: LatLng;
   planta: LatLng;
@@ -15,8 +15,9 @@ export type StopRow = {
   lat: number;
   lng: number;
   service_s: number;
-  w_area?: string;
+  w_route?: string;
   w_wastes?: string;
+  containers?: number;
   pueblo?: string;
   municipio?: string;
   fid?: string | number;
@@ -40,7 +41,7 @@ export type OrderedStopsArtifact = {
   };
   meta: {
     selected_wastes: string[];
-    selected_area: string;
+    selected_route: string;
     departure: string;     // ISO Z
     mode: string;          // "fastest;truck;traffic:disabled"
     improveFor: string;    // "time"

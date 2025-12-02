@@ -25,6 +25,8 @@ export default function Step3Routing() {
   const runStep3 = async () => {
     setError(null);
     setSuccessMsg('');
+    // Clear previous routing artifact immediately to refresh the Route info card
+    setRoutingArtifact(undefined);
     setIsRunningStep3(true);
     const log: string[] = [];
 
